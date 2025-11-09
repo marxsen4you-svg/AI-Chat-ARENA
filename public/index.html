@@ -277,6 +277,14 @@
 <main>
   <aside id="sidebar">
     <div>
+      <label>OpenRouter API Key</label>
+      <input id="api-key-input" type="password" placeholder="sk-or-v1-..." />
+      <small style="font-size: 9px; color: #6b7280; display: block; margin-top: 2px;">
+        Get your API key from <a href="https://openrouter.ai/keys" target="_blank" style="color: #38bdf8;">openrouter.ai/keys</a>
+      </small>
+    </div>
+
+    <div>
       <label>Subject</label>
       <input id="subject-input" type="text" placeholder="e.g., Is AGI alignment achievable?" />
     </div>
@@ -336,6 +344,7 @@
   };
 
   const els = {
+    apiKeyInput: document.getElementById("api-key-input"),
     modelsContainer: document.getElementById("models-container"),
     addModelBtn: document.getElementById("add-model-btn"),
     subjectInput: document.getElementById("subject-input"),
@@ -494,11 +503,17 @@
 
   // --- API client to our proxy ---
   async function callProxyChat(model, messages) {
+    const apiKey = els.apiKeyInput.value.trim();
+    if (!apiKey) {
+      throw new Error("Please enter your OpenRouter API key");
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey
         },
         body: JSON.stringify({ model, messages })
       });
@@ -592,18 +607,18 @@
 
       state.history.push(msgObj);
 
-      // Trim history to reduce prompt size and avoid 402 "Prompt tokens limit exceeded".
-      // This is intentionally conservative for free-tier / smaller context limits.
-      // - Long debates + multiple strong models can explode tokens quickly.
-      // - We cap the number of stored turns and also hard-cap total token-ish length.
-      const MAX_TURNS = 16; // fewer turns => smaller prompt
+      // Trim history to reduce prompt size and avoid 402 "credits or max_tokens" errors.
+      // Make this very conservative for free-tier / low-credit setups:
+      // - fewer stored turns
+      // - lower effective prompt budget
+      const MAX_TURNS = 40;
       if (state.history.length > MAX_TURNS) {
         state.history = state.history.slice(-MAX_TURNS);
       }
 
       // Extra safety: approximate token budget and trim oldest messages if oversized.
       // Rough heuristic: assume ~4 chars per token. This is not exact but good enough.
-      const MAX_PROMPT_TOKENS_EST = 3500; // keep comfortably under common 4K-style limits
+      const MAX_PROMPT_TOKENS_EST = 1800; // keep well under limits to reduce 402 risk
       function estimateTokens(str) {
         return Math.ceil((str || "").length / 4);
       }
@@ -685,6 +700,22 @@
     els.logs.style.display = state.debug ? "block" : "none";
     if (!state.debug) {
       els.logs.textContent = "";
+    }
+  });
+
+  // Load saved API key from localStorage
+  const savedApiKey = localStorage.getItem("openrouter_api_key");
+  if (savedApiKey) {
+    els.apiKeyInput.value = savedApiKey;
+  }
+
+  // Save API key to localStorage when changed
+  els.apiKeyInput.addEventListener("input", () => {
+    const apiKey = els.apiKeyInput.value.trim();
+    if (apiKey) {
+      localStorage.setItem("openrouter_api_key", apiKey);
+    } else {
+      localStorage.removeItem("openrouter_api_key");
     }
   });
 

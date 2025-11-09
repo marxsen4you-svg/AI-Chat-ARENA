@@ -20,6 +20,7 @@ app.use(express.static("public"));
 
 // POST /api/chat
 // Body: { messages: [...], model: "model-id" }
+// Header: X-API-Key (optional, overrides env var)
 app.post("/api/chat", async (req, res) => {
   const { messages, model } = req.body || {};
 
@@ -30,12 +31,19 @@ app.post("/api/chat", async (req, res) => {
     return res.status(400).json({ error: "model is required" });
   }
 
+  // Use API key from header if provided, otherwise fall back to environment variable
+  const apiKey = req.headers["x-api-key"] || process.env.OPENROUTER_API_KEY || "";
+
+  if (!apiKey) {
+    return res.status(401).json({ error: "API key required. Please provide your OpenRouter API key." });
+  }
+
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY || ""}`,
-        "HTTP-Referer": "http://localhost:" + PORT,
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": req.headers.origin || req.headers.referer || "https://ai-chat-arena.netlify.app",
         "X-Title": "OpenRouter Multi-Model Debate",
         "Content-Type": "application/json"
       },
