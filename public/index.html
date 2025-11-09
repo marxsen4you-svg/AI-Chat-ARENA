@@ -158,6 +158,29 @@
     #stop-btn:hover {
       background-color: #1f2937;
     }
+    #export-btn,
+    #notebooklm-btn {
+      width: 100%;
+      padding: 6px 0;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 4px;
+      border: 1px solid #1f2937;
+      cursor: pointer;
+      background-color: #111827;
+      color: #38bdf8;
+      display: none;
+    }
+    #export-btn:hover,
+    #notebooklm-btn:hover {
+      background-color: #1f2937;
+      border-color: #38bdf8;
+    }
+    #export-btn:disabled,
+    #notebooklm-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     #status-line {
       font-size: 10px;
       color: #6b7280;
@@ -310,6 +333,8 @@
     <div id="controls">
       <button id="start-btn" type="button">Start Endless Debate</button>
       <button id="stop-btn" type="button">Stop</button>
+      <button id="export-btn" type="button">📄 Export to PDF</button>
+      <button id="notebooklm-btn" type="button">📓 Upload to NotebookLM</button>
       <div id="status-line"></div>
     </div>
 
@@ -351,6 +376,8 @@
     systemPrompt: document.getElementById("system-prompt"),
     startBtn: document.getElementById("start-btn"),
     stopBtn: document.getElementById("stop-btn"),
+    exportBtn: document.getElementById("export-btn"),
+    notebooklmBtn: document.getElementById("notebooklm-btn"),
     statusLine: document.getElementById("status-line"),
     debate: document.getElementById("debate-container"),
     debugCheckbox: document.getElementById("debug-checkbox"),
@@ -685,6 +712,8 @@
     setStatus("Starting infinite debate loop...");
     els.startBtn.style.display = "none";
     els.stopBtn.style.display = "block";
+    els.exportBtn.style.display = "none";
+    els.notebooklmBtn.style.display = "none";
     debateLoop();
   });
 
@@ -693,7 +722,168 @@
     setStatus("Stopped.");
     els.startBtn.style.display = "block";
     els.stopBtn.style.display = "none";
+
+    // Show export buttons when stopped and there's history
+    if (state.history.length > 0) {
+      els.exportBtn.style.display = "block";
+      els.notebooklmBtn.style.display = "block";
+    }
   });
+
+  // --- PDF Export ---
+  function exportToPDF() {
+    if (state.history.length === 0) {
+      alert("No conversation to export!");
+      return;
+    }
+
+    const subject = els.subjectInput.value.trim() || "AI Debate";
+    const date = new Date().toLocaleString();
+
+    // Create markdown content
+    let markdown = `# ${subject}\n\n`;
+    markdown += `**Generated:** ${date}\n\n`;
+    markdown += `**Participants:** ${state.participants.map(p => p.persona + " (" + p.model + ")").join(", ")}\n\n`;
+    markdown += `---\n\n`;
+
+    state.history.forEach((msg, i) => {
+      markdown += `## Turn ${msg.turnIndex + 1}: ${msg.speaker}\n`;
+      markdown += `*Model: ${msg.model}*\n\n`;
+      markdown += `${msg.content}\n\n`;
+      markdown += `---\n\n`;
+    });
+
+    // Convert to simple text for PDF (using browser print)
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${subject} - Debate Transcript</title>
+        <style>
+          body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+          }
+          h1 {
+            color: #1a1a1a;
+            border-bottom: 3px solid #22c55e;
+            padding-bottom: 10px;
+          }
+          h2 {
+            color: #2563eb;
+            margin-top: 30px;
+            font-size: 18px;
+          }
+          .meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+          }
+          .model {
+            color: #888;
+            font-size: 12px;
+            font-style: italic;
+          }
+          .content {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #38bdf8;
+            border-radius: 4px;
+          }
+          hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 30px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${subject}</h1>
+        <div class="meta">
+          <strong>Generated:</strong> ${date}<br>
+          <strong>Participants:</strong> ${state.participants.map(p => p.persona + " (" + p.model + ")").join(", ")}
+        </div>
+        <hr>
+        ${state.history.map(msg => `
+          <h2>Turn ${msg.turnIndex + 1}: ${msg.speaker}</h2>
+          <div class="model">Model: ${msg.model}</div>
+          <div class="content">${msg.content.replace(/\n/g, '<br>')}</div>
+          <hr>
+        `).join('')}
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+
+    // Trigger print dialog after a short delay
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  }
+
+  els.exportBtn.addEventListener("click", exportToPDF);
+
+  // --- NotebookLM Upload ---
+  function uploadToNotebookLM() {
+    if (state.history.length === 0) {
+      alert("No conversation to upload!");
+      return;
+    }
+
+    const subject = els.subjectInput.value.trim() || "AI Debate";
+    const date = new Date().toLocaleString();
+
+    // Create formatted text content
+    let content = `${subject}\n\n`;
+    content += `Generated: ${date}\n`;
+    content += `Participants: ${state.participants.map(p => p.persona + " (" + p.model + ")").join(", ")}\n\n`;
+    content += `${"=".repeat(80)}\n\n`;
+
+    state.history.forEach((msg, i) => {
+      content += `Turn ${msg.turnIndex + 1}: ${msg.speaker}\n`;
+      content += `Model: ${msg.model}\n`;
+      content += `${"-".repeat(80)}\n`;
+      content += `${msg.content}\n\n`;
+      content += `${"=".repeat(80)}\n\n`;
+    });
+
+    // Create a text file blob
+    const blob = new Blob([content], { type: 'text/plain' });
+    const file = new File([blob], `debate-${Date.now()}.txt`, { type: 'text/plain' });
+
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${subject.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // Open NotebookLM in new tab with instructions
+    setTimeout(() => {
+      const confirmed = confirm(
+        "The debate transcript has been downloaded!\n\n" +
+        "Click OK to open NotebookLM where you can:\n" +
+        "1. Create a new notebook or open an existing one\n" +
+        "2. Click 'Upload source'\n" +
+        "3. Upload the downloaded .txt file\n\n" +
+        "NotebookLM will then analyze the debate and generate insights!"
+      );
+
+      if (confirmed) {
+        window.open('https://notebooklm.google.com/', '_blank');
+      }
+    }, 300);
+  }
+
+  els.notebooklmBtn.addEventListener("click", uploadToNotebookLM);
 
   els.debugCheckbox.addEventListener("change", () => {
     state.debug = els.debugCheckbox.checked;
