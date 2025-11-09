@@ -88,4 +88,4 @@ Web app that lets you:
   - Edit the `DEFAULT_MODELS` array in `public/index.html`.
 - To prevent runaway API cost:
   - Use a larger delay between turns.
-  - Or stop the debate manually with the Stop button.
+  - Or stop the debate manually with the Stop button.# AI-Chat-ARENA
