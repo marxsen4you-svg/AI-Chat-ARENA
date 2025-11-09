@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OpenRouter Multi-Model Infinite Debate</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background-color: #020817;
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      padding: 16px 20px;
+      background: radial-gradient(circle at top left, #22c55e22, #38bdf822, #020817);
+      border-bottom: 1px solid #111827;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f9fafb;
+    }
+    header p {
+      margin: 0;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      overflow: hidden;
+    }
+    #sidebar {
+      padding: 12px 12px 16px;
+      border-right: 1px solid #111827;
+      background-color: #020817;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    label {
+      font-size: 11px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    select, input[type="text"], textarea {
+      width: 100%;
+      padding: 6px 8px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+      background-color: #020817;
+      border: 1px solid #111827;
+      border-radius: 4px;
+      color: #e5e7eb;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    select:focus, input:focus, textarea:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf844;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+      max-height: 160px;
+      font-family: inherit;
+    }
+    #models-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .model-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .model-row select,
+    .model-row input[type="text"] {
+      flex: 1;
+      font-size: 11px;
+      padding: 4px 6px;
+    }
+    .model-label {
+      font-size: 10px;
+      color: #6b7280;
+      width: 20px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .model-remove {
+      cursor: pointer;
+      color: #f97316;
+      font-size: 11px;
+      padding: 0 4px;
+      border-radius: 3px;
+    }
+    .model-remove:hover {
+      background-color: #111827;
+    }
+    #add-model-btn {
+      width: 100%;
+      padding: 4px 0;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px dashed #111827;
+      color: #9ca3af;
+      background: transparent;
+      cursor: pointer;
+    }
+    #add-model-btn:hover {
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    #start-btn,
+    #stop-btn {
+      width: 100%;
+      padding: 7px 0;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+    }
+    #start-btn {
+      background: linear-gradient(to right, #22c55e, #22c55eaa);
+      color: #020817;
+    }
+    #start-btn:hover {
+      background: linear-gradient(to right, #22c55e, #22c55ecc);
+    }
+    #stop-btn {
+      background-color: #111827;
+      color: #f97316;
+      border: 1px solid #1f2937;
+      display: none;
+    }
+    #stop-btn:hover {
+      background-color: #1f2937;
+    }
+    #status-line {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 2px;
+      min-height: 12px;
+    }
+    #debug-toggle {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      color: #6b7280;
+    }
+    #debug-toggle input {
+      width: 11px;
+      height: 11px;
+    }
+    #logs {
+      display: none;
+      margin-top: 4px;
+      padding: 4px;
+      font-size: 9px;
+      line-height: 1.4;
+      background-color: #020817;
+      border-radius: 4px;
+      border: 1px solid #111827;
+      color: #6b7280;
+      max-height: 130px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    #debate-container {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      background: radial-gradient(circle at top, #111827, #020817);
+    }
+    .message {
+      padding: 6px 8px;
+      border-radius: 6px;
+      max-width: 96%;
+      font-size: 12px;
+      line-height: 1.5;
+      border: 1px solid #111827;
+      background-color: #020817;
+      box-shadow: 0 1px 0 rgba(15,23,42,0.6);
+    }
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 2px;
+      gap: 6px;
+    }
+    .speaker {
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .model-id {
+      font-size: 9px;
+      color: #6b7280;
+    }
+    .turn-label {
+      font-size: 9px;
+      color: #4b5563;
+    }
+    .assistant-0 { border-left: 2px solid #22c55e; }
+    .assistant-1 { border-left: 2px solid #38bdf8; }
+    .assistant-2 { border-left: 2px solid #a855f7; }
+    .assistant-3 { border-left: 2px solid #f97316; }
+    .assistant-4 { border-left: 2px solid #ef4444; }
+    .system-msg {
+      border-left: 2px solid #9ca3af;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+    #subject-input {
+      font-size: 12px;
+    }
+    #system-prompt {
+      font-size: 10px;
+      color: #9ca3af;
+    }
+    #loop-config {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+    #loop-config input {
+      width: 40px;
+      padding: 2px 4px;
+      font-size: 10px;
+      background-color: #020817;
+      border: 1px solid #111827;
+      border-radius: 4px;
+      color: #e5e7eb;
+    }
+    #loop-config input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px #38bdf822;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>OpenRouter Multi-Model Infinite Debate</h1>
+  <p>Select multiple models, define a subject, and watch them debate it continuously via your OpenRouter proxy.</p>
+</header>
+<main>
+  <aside id="sidebar">
+    <div>
+      <label>Subject</label>
+      <input id="subject-input" type="text" placeholder="e.g., Is AGI alignment achievable?" />
+    </div>
+
+    <div>
+      <label>System Prompt (optional)</label>
+      <textarea id="system-prompt" rows="3"
+        placeholder="You are expert AI models engaged in a rigorous, adversarial but respectful debate. Each turn, reference previous arguments and push the discussion forward."></textarea>
+    </div>
+
+    <div>
+      <label>Participants (Models + Persona)</label>
+      <div id="models-container"></div>
+      <button id="add-model-btn" type="button">+ Add participant</button>
+    </div>
+
+    <div id="loop-config">
+      <span>Delay between turns</span>
+      <input id="delay-ms" type="number" min="0" value="1500" />
+      <span>ms</span>
+    </div>
+
+    <div id="controls">
+      <button id="start-btn" type="button">Start Endless Debate</button>
+      <button id="stop-btn" type="button">Stop</button>
+      <div id="status-line"></div>
+    </div>
+
+    <label id="debug-toggle">
+      <input type="checkbox" id="debug-checkbox" />
+      Show debug logs (for diagnosing API / loop issues)
+    </label>
+    <pre id="logs"></pre>
+  </aside>
+
+  <section id="debate-container"></section>
+</main>
+
+<script>
+  // --- Config ---
+  // Default models configured with known-valid OpenRouter IDs.
+  // If a chosen model ever 400s, the debug log (left bottom) will show it.
+  const DEFAULT_MODELS = [
+    "anthropic/claude-3-5-sonnet-20241022",
+    "openai/gpt-4.1-mini",
+    "meta-llama/llama-3.1-70b-instruct"
+  ];
+
+  const state = {
+    participants: [],
+    running: false,
+    turn: 0,
+    history: [],
+    debug: false,
+    inFlight: false,
+    delayMs: 1500
+  };
+
+  const els = {
+    modelsContainer: document.getElementById("models-container"),
+    addModelBtn: document.getElementById("add-model-btn"),
+    subjectInput: document.getElementById("subject-input"),
+    systemPrompt: document.getElementById("system-prompt"),
+    startBtn: document.getElementById("start-btn"),
+    stopBtn: document.getElementById("stop-btn"),
+    statusLine: document.getElementById("status-line"),
+    debate: document.getElementById("debate-container"),
+    debugCheckbox: document.getElementById("debug-checkbox"),
+    logs: document.getElementById("logs"),
+    delayMs: document.getElementById("delay-ms"),
+  };
+
+  // --- Logging helpers for debugging likely issues ---
+  function logDebug(...args) {
+    if (!state.debug) return;
+    const msg = args.map(a => typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)).join(" ");
+    els.logs.textContent += msg + "\n";
+    els.logs.scrollTop = els.logs.scrollHeight;
+    console.log("[debug]", ...args);
+  }
+
+  function setStatus(msg, isError = false) {
+    els.statusLine.textContent = msg || "";
+    els.statusLine.style.color = isError ? "#f97316" : "#6b7280";
+  }
+
+  // Potential sources of problems (for debugging mindset):
+  // 1. Missing OPENROUTER_API_KEY on backend -> 401/403 from proxy
+  // 2. Wrong model IDs or unavailable models -> 400/404 from OpenRouter
+  // 3. CORS / wrong URL -> front-end can't reach /api/chat
+  // 4. Malformed messages payload -> 400 from OpenRouter
+  // 5. Loop concurrency bugs -> overlapping calls, strange behavior
+  // We log status codes, payloads, and control loop with a single inFlight flag to validate.
+
+  // --- UI: participant rows ---
+  function createParticipantRow(initialModel, initialPersona, index) {
+    const row = document.createElement("div");
+    row.className = "model-row";
+
+    const label = document.createElement("div");
+    label.className = "model-label";
+    label.textContent = "#" + (index + 1);
+
+    const select = document.createElement("select");
+    DEFAULT_MODELS.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      select.appendChild(opt);
+    });
+    if (initialModel) select.value = initialModel;
+
+    const personaInput = document.createElement("input");
+    personaInput.type = "text";
+    personaInput.placeholder = "Persona (e.g., Rationalist, Skeptic, Optimist)";
+    personaInput.value = initialPersona || "";
+
+    const remove = document.createElement("span");
+    remove.className = "model-remove";
+    remove.textContent = "✕";
+
+    remove.addEventListener("click", () => {
+      if (state.running) return;
+      const idx = state.participants.findIndex(p => p.row === row);
+      if (idx >= 0) {
+        state.participants.splice(idx, 1);
+        row.remove();
+        rebuildLabels();
+      }
+    });
+
+    select.addEventListener("change", () => {
+      const p = state.participants.find(p => p.row === row);
+      if (p) p.model = select.value;
+    });
+    personaInput.addEventListener("input", () => {
+      const p = state.participants.find(p => p.row === row);
+      if (p) p.persona = personaInput.value;
+    });
+
+    row.appendChild(label);
+    row.appendChild(select);
+    row.appendChild(personaInput);
+    row.appendChild(remove);
+
+    els.modelsContainer.appendChild(row);
+
+    const participant = { row, model: select.value, persona: personaInput.value || ("Participant " + (index + 1)) };
+    state.participants.push(participant);
+  }
+
+  function rebuildLabels() {
+    const rows = els.modelsContainer.querySelectorAll(".model-row");
+    rows.forEach((row, i) => {
+      const label = row.querySelector(".model-label");
+      if (label) label.textContent = "#" + (i + 1);
+      const p = state.participants.find(p => p.row === row);
+      if (p) {
+        if (!p.persona || p.persona.startsWith("Participant ")) {
+          p.persona = "Participant " + (i + 1);
+        }
+      }
+    });
+  }
+
+  function ensureDefaultParticipants() {
+    if (state.participants.length === 0) {
+      createParticipantRow(DEFAULT_MODELS[0], "Analytical Formalist", 0);
+      createParticipantRow(DEFAULT_MODELS[1], "Pragmatic Engineer", 1);
+      createParticipantRow(DEFAULT_MODELS[2], "Skeptical Critic", 2);
+    }
+  }
+
+  // --- Debate rendering ---
+  function appendMessageHtml({ speaker, model, content, turnIndex, idx }) {
+    const div = document.createElement("div");
+    const cls = typeof idx === "number" ? ("assistant-" + (idx % 5)) : "system-msg";
+    div.className = "message " + cls;
+
+    const header = document.createElement("div");
+    header.className = "message-header";
+
+    const left = document.createElement("div");
+    const speakerSpan = document.createElement("span");
+    speakerSpan.className = "speaker";
+    speakerSpan.textContent = speaker;
+    const modelSpan = document.createElement("span");
+    modelSpan.className = "model-id";
+    modelSpan.textContent = " • " + model;
+    left.appendChild(speakerSpan);
+    left.appendChild(modelSpan);
+
+    const turnSpan = document.createElement("span");
+    turnSpan.className = "turn-label";
+    turnSpan.textContent = "Turn " + (turnIndex + 1);
+
+    header.appendChild(left);
+    header.appendChild(turnSpan);
+
+    const body = document.createElement("div");
+    body.textContent = content;
+
+    div.appendChild(header);
+    div.appendChild(body);
+
+    els.debate.appendChild(div);
+    els.debate.scrollTop = els.debate.scrollHeight;
+  }
+
+  function resetDebate() {
+    state.history = [];
+    state.turn = 0;
+    els.debate.innerHTML = "";
+  }
+
+  // --- API client to our proxy ---
+  async function callProxyChat(model, messages) {
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ model, messages })
+      });
+
+      const text = await res.text();
+      logDebug("proxy /api/chat status:", res.status);
+      logDebug("proxy /api/chat body:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Non-JSON response from proxy: " + text.slice(0, 200));
+      }
+
+      if (!res.ok) {
+        throw new Error("Proxy error " + res.status + ": " + JSON.stringify(data));
+      }
+
+      const choice = data.choices && data.choices[0];
+      const msg = choice && choice.message && choice.message.content;
+      if (!msg) throw new Error("No message content in OpenRouter response");
+      return msg;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // --- Debate loop ---
+  async function debateLoop() {
+    if (!state.running) return;
+    if (state.inFlight) {
+      logDebug("Loop skipped: inFlight");
+      setTimeout(debateLoop, state.delayMs);
+      return;
+    }
+
+    state.inFlight = true;
+
+    const subject = els.subjectInput.value.trim() || "The implications of artificial general intelligence on society.";
+    const systemText = els.systemPrompt.value.trim() ||
+      "You are distinct AI experts debating the given subject. " +
+      "Respond concisely (4-8 sentences), reference prior points, disagree thoughtfully, and avoid repetition.";
+
+    state.delayMs = parseInt(els.delayMs.value || "1500", 10);
+    if (Number.isNaN(state.delayMs) || state.delayMs < 0) state.delayMs = 1500;
+
+    const participants = state.participants;
+    if (!participants.length) {
+      setStatus("Add at least one participant to start.", true);
+      state.running = false;
+      state.inFlight = false;
+      els.startBtn.style.display = "block";
+      els.stopBtn.style.display = "none";
+      return;
+    }
+
+    const currentIdx = state.turn % participants.length;
+    const current = participants[currentIdx];
+
+    const systemMessage = { role: "system", content: systemText + " Subject: " + subject };
+
+    // Build conversation history with system + running messages
+    const historyMessages = [systemMessage].concat(
+      state.history.map(h => ({
+        role: "assistant",
+        content: h.content
+      }))
+    );
+
+    // Add a role hint for the current participant
+    historyMessages.push({
+      role: "system",
+      content:
+        `You are "${current.persona || "Participant " + (currentIdx + 1)}" using model ${current.model}. ` +
+        `Respond to the debate so far. Explicitly reference at least one previous point from another participant.`
+    });
+
+    logDebug("Loop turn", state.turn, "model", current.model);
+
+    try {
+      const reply = await callProxyChat(current.model, historyMessages);
+
+      const msgObj = {
+        speaker: current.persona || "Participant " + (currentIdx + 1),
+        model: current.model,
+        content: reply,
+        turnIndex: state.turn,
+        idx: currentIdx
+      };
+
+      state.history.push(msgObj);
+
+      // Trim history to reduce prompt size and avoid 402 "Prompt tokens limit exceeded".
+      // This is intentionally conservative for free-tier / smaller context limits.
+      // - Long debates + multiple strong models can explode tokens quickly.
+      // - We cap the number of stored turns and also hard-cap total token-ish length.
+      const MAX_TURNS = 16; // fewer turns => smaller prompt
+      if (state.history.length > MAX_TURNS) {
+        state.history = state.history.slice(-MAX_TURNS);
+      }
+
+      // Extra safety: approximate token budget and trim oldest messages if oversized.
+      // Rough heuristic: assume ~4 chars per token. This is not exact but good enough.
+      const MAX_PROMPT_TOKENS_EST = 3500; // keep comfortably under common 4K-style limits
+      function estimateTokens(str) {
+        return Math.ceil((str || "").length / 4);
+      }
+      function enforceHistoryTokenBudget() {
+        const subject = els.subjectInput.value.trim() || "";
+        const systemText = els.systemPrompt.value.trim() || "";
+        let total = estimateTokens(systemText) + estimateTokens(subject);
+
+        // Count existing history
+        for (const h of state.history) {
+          total += estimateTokens(h.content || "");
+        }
+
+        // Drop oldest messages until under budget
+        while (state.history.length > 0 && total > MAX_PROMPT_TOKENS_EST) {
+          const removed = state.history.shift();
+          total -= estimateTokens(removed.content || "");
+        }
+      }
+      enforceHistoryTokenBudget();
+
+      appendMessageHtml(msgObj);
+
+      setStatus(
+        `Turn ${state.turn + 1}: ${msgObj.speaker} (${msgObj.model})`,
+        false
+      );
+      state.turn += 1;
+    } catch (err) {
+      console.error(err);
+      logDebug("Error in debateLoop:", String(err));
+      setStatus("Error: " + String(err).slice(0, 120), true);
+      // On error, stop loop to avoid hammering the API
+      state.running = false;
+      els.startBtn.style.display = "block";
+      els.stopBtn.style.display = "none";
+    } finally {
+      state.inFlight = false;
+      if (state.running) {
+        setTimeout(debateLoop, state.delayMs);
+      }
+    }
+  }
+
+  // --- Event wiring ---
+  els.addModelBtn.addEventListener("click", () => {
+    if (state.running) return;
+    const idx = state.participants.length;
+    const model = DEFAULT_MODELS[idx % DEFAULT_MODELS.length];
+    createParticipantRow(model, "", idx);
+  });
+
+  els.startBtn.addEventListener("click", () => {
+    if (state.running) return;
+
+    if (!state.participants.length) {
+      ensureDefaultParticipants();
+    }
+
+    resetDebate();
+    els.logs.textContent = "";
+    state.running = true;
+    state.turn = 0;
+    setStatus("Starting infinite debate loop...");
+    els.startBtn.style.display = "none";
+    els.stopBtn.style.display = "block";
+    debateLoop();
+  });
+
+  els.stopBtn.addEventListener("click", () => {
+    state.running = false;
+    setStatus("Stopped.");
+    els.startBtn.style.display = "block";
+    els.stopBtn.style.display = "none";
+  });
+
+  els.debugCheckbox.addEventListener("change", () => {
+    state.debug = els.debugCheckbox.checked;
+    els.logs.style.display = state.debug ? "block" : "none";
+    if (!state.debug) {
+      els.logs.textContent = "";
+    }
+  });
+
+  // Initialize defaults
+  ensureDefaultParticipants();
+</script>
+</body>
+</html>
