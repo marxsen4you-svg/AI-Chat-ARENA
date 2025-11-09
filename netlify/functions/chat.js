@@ -47,7 +47,7 @@ export const handler = async (event, context) => {
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: 512,
+        max_tokens: 300,
         temperature: 0.9
       })
     });
