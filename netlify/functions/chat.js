@@ -1,6 +1,7 @@
-import fetch from "node-fetch";
+// Netlify Function for OpenRouter API proxy
+// Uses native fetch (available in Node.js 18+)
 
-export async function handler(event, context) {
+export const handler = async (event, context) => {
   // Only allow POST requests
   if (event.httpMethod !== "POST") {
     return {
@@ -25,8 +26,8 @@ export async function handler(event, context) {
       };
     }
 
-    // Get API key from header
-    const apiKey = event.headers["x-api-key"] || "";
+    // Get API key from header (case-insensitive)
+    const apiKey = event.headers["x-api-key"] || event.headers["X-API-Key"] || "";
 
     if (!apiKey) {
       return {
@@ -57,6 +58,9 @@ export async function handler(event, context) {
       console.error("[openrouter] error response", data);
       return {
         statusCode: response.status,
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ error: "OpenRouter error", detail: data })
       };
     }
@@ -72,7 +76,13 @@ export async function handler(event, context) {
     console.error("[function] Error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Server error contacting OpenRouter" })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        error: "Server error contacting OpenRouter",
+        message: err.message
+      })
     };
   }
-}
+};
